@@ -25,6 +25,8 @@
     --font-body: 'Work Sans', sans-serif;
     --bg-color-1: #E85D3B;
     --bg-color-2: #C99A3B;
+    --purple-1: #5B3E96;
+    --purple-2: #8B5FBF;
   }
 
   html[data-theme="dark"] {
@@ -225,12 +227,35 @@
   /* Subjects top bar */
   .topic-sidebar {
     position: sticky; top: 0; width: 100%;
-    background: var(--surface); border-bottom: 1px solid var(--grid);
+    background: linear-gradient(90deg, var(--purple-1), var(--purple-2));
+    border-bottom: 1px solid var(--grid);
     padding: 10px 16px; display: flex; flex-direction: row; align-items: center; gap: 10px;
     overflow-x: auto; overflow-y: hidden; z-index: 25;
   }
+  .topic-sidebar .logo-text { color: #fff; }
+  .topic-sidebar .ele-eye { fill: #fff; }
+  .topic-sidebar .sidebar-topic-btn { color: rgba(255,255,255,0.82); }
+  .topic-sidebar .sidebar-topic-btn.active,
+  .topic-sidebar .sidebar-topic-btn:hover { color: #fff; background: rgba(255,255,255,0.16); }
   @media (max-width: 700px) {
     .topic-sidebar { padding: 8px 10px; gap: 6px; }
+  }
+
+  /* Right-hand subject quick-jump rail */
+  #subject-rail {
+    position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px; z-index: 20;
+  }
+  .subject-rail-btn {
+    width: 52px; height: 52px; border-radius: 16px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    color: var(--ink); transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .subject-rail-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
+  .subject-rail-btn.active { background: linear-gradient(135deg, var(--purple-1), var(--purple-2)); color: #fff; }
+  @media (max-width: 900px) {
+    #subject-rail { display: none; } /* keeps mobile layout uncluttered; subjects still reachable from the top bar */
   }
 
   .sidebar-brand { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0; }
@@ -344,14 +369,26 @@
   }
 
   /* Home / year / topic preview */
-  .home-welcome { padding: 32px 36px; margin-bottom: 20px; position: relative; overflow: hidden; }
-  .home-welcome::before {
-    content: "";
-    position: absolute; top: 0; left: 0; right: 0; height: 5px;
-    background: linear-gradient(90deg, var(--accent), var(--teal));
+  .home-welcome {
+    padding: 30px 36px; margin-bottom: 20px; position: relative; overflow: hidden;
+    background: linear-gradient(120deg, #FFB84D, var(--accent) 65%, var(--purple-2));
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    border: none;
   }
-  .home-welcome h2 { margin: 0; font-size: 26px; font-weight: 700; }
-  .home-welcome .preview-blurb { margin: 10px 0 0; max-width: 52ch; }
+  .home-welcome::before {
+    content: "🏆";
+    position: absolute; right: 28px; top: 50%; transform: translateY(-50%) rotate(-8deg);
+    font-size: 74px; opacity: 0.35; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
+  }
+  .home-welcome h2 { margin: 0; font-size: 26px; font-weight: 700; color: #fff; }
+  .home-welcome .preview-blurb { margin: 10px 0 0; max-width: 52ch; color: rgba(255,255,255,0.92); }
+  .home-welcome-start {
+    position: relative; z-index: 1; flex-shrink: 0;
+    background: #fff; color: var(--accent); font-weight: 700; padding: 12px 26px;
+    border: none; border-radius: 999px; font-size: 15px; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18); transition: transform 0.15s;
+  }
+  .home-welcome-start:hover { transform: translateY(-2px); }
   .home-section { padding: 22px; margin-top: 20px; }
   .home-section-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; display: block; margin-bottom: 12px; }
   .home-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
@@ -718,7 +755,7 @@
         <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" maxlength="500" required />
         <button type="submit" class="btn btn-primary" style="padding:10px 16px;">Send</button>
       </form>
-      <p class="fine-print" style="margin-top:8px;">Messages are stored on this device/browser only — they won't reach a friend who's using a different device or browser.</p>
+      <p class="fine-print" style="margin-top:8px;">Messages sync with your friend's account — checks for new replies every few seconds.</p>
     </div>
   </div>
 
@@ -845,6 +882,7 @@
     </aside>
 
     <div id="app-shell">
+      <aside id="subject-rail"></aside>
       <header class="app-header">
         <div class="header-right">
           <div class="pill mono"><span>✦</span><span id="header-points">0 pts</span></div>
@@ -869,8 +907,11 @@
             <!-- Home dashboard -->
             <div id="home-view">
               <div class="card home-welcome">
-                <h2 id="home-greeting"></h2>
-                <p id="home-sub" class="preview-blurb"></p>
+                <div>
+                  <h2 id="home-greeting"></h2>
+                  <p id="home-sub" class="preview-blurb"></p>
+                </div>
+                <button id="home-welcome-start" class="home-welcome-start">Start practicing →</button>
               </div>
 
               <div class="stat-grid">
@@ -2212,6 +2253,8 @@ function renderHome() {
 
   const shortcuts = $("#home-year-shortcuts");
   shortcuts.innerHTML = "";
+  const rail = $("#subject-rail");
+  rail.innerHTML = "";
   YEAR_LEVELS.forEach((y) => {
     const combined = y.topics.reduce((acc, t) => {
       const p = me.progress[t.id]; acc.attempted += p.attempted; acc.correct += p.correct; return acc;
@@ -2222,6 +2265,13 @@ function renderHome() {
     btn.innerHTML = `<span>${y.icon} ${y.label}</span><span class="hs-pct">${pct}%</span>`;
     btn.addEventListener("click", () => selectYear(y.id));
     shortcuts.appendChild(btn);
+
+    const railBtn = document.createElement("button");
+    railBtn.className = "subject-rail-btn";
+    railBtn.title = y.label;
+    railBtn.textContent = y.icon;
+    railBtn.addEventListener("click", () => selectYear(y.id));
+    rail.appendChild(railBtn);
   });
 
   const top3 = Object.entries(users).map(([name, u]) => ({ name, points: u.points, avatar: u.avatar || "🎓" }))
@@ -2244,6 +2294,7 @@ function renderHome() {
 }
 
 $("#home-view-leaderboard").addEventListener("click", () => document.querySelector('.tab-btn[data-tab="leaderboard"]').click());
+$("#home-welcome-start").addEventListener("click", () => selectYear(YEAR_LEVELS[0].id));
 
 $("#share-trophy-btn").addEventListener("click", () => {
   const me = users[currentUsername];
