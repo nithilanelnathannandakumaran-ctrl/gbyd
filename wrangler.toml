@@ -1,4 +1,4 @@
-name = "gbyd-1"
+name = "gbyd"
 main = "src/index.js"
 compatibility_date = "2024-09-01"
 
@@ -9,4 +9,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "gbyd-db"
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "3ac683cf-d0fb-4f38-a6be-03d92cbbc9c5"
