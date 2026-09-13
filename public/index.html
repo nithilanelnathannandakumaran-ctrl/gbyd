@@ -1978,23 +1978,27 @@ function forceLoggedOut(message) {
   setTimeout(() => authError(message), 100);
 }
 
-(function demoInit() {
-  // PREVIEW-ONLY demo data so the design can be seen without a live backend.
-  const demoProgress = {};
-  allTopics().forEach((t, i) => { demoProgress[t.id] = { attempted: (i % 5) + 1, correct: i % 4 }; });
-  users = {
-    elnathan: { username: "elnathan", isAdmin: true, kicked: false, avatar: "🎓", points: 245,
-      unlockedAvatars: ["🎓"], friends: ["maya"], progress: demoProgress,
-      badges: ["novice","bronze","admin"], bonusBadges: [], hadPerfectRound: true, forceLogoutAt: 0, joinedAt: Date.now() },
-    maya: { username: "maya", isAdmin: false, kicked: false, avatar: "🦉", points: 180,
-      unlockedAvatars: ["🎓","🦉"], friends: ["elnathan"], progress: {}, badges: ["novice"], bonusBadges: [],
-      hadPerfectRound: false, forceLogoutAt: 0, joinedAt: Date.now() },
-  };
-  allTopics().forEach((t) => { if (!users.maya.progress[t.id]) users.maya.progress[t.id] = { attempted: 0, correct: 0 }; });
-  currentUsername = "elnathan";
-  sessionStartedAt = Date.now();
-  showScreen("app");
-  renderApp();
+(async function init() {
+  const token = getToken();
+  if (!token) { showScreen(hasAcceptedTerms() ? "auth" : "terms"); return; }
+  try {
+    const data = await apiFetch("/state");
+    users = data.users;
+    const me = data.me;
+    if (!me || !users[me]) throw new Error("no session");
+    if (users[me].kicked) {
+      forceLoggedOut("This account has been suspended by an administrator. Please contact the site admin.");
+      return;
+    }
+    currentUsername = me;
+    sessionStartedAt = Date.now();
+    showScreen("app");
+    renderApp();
+    startStatePolling();
+  } catch (e) {
+    setToken(null);
+    showScreen(hasAcceptedTerms() ? "auth" : "terms");
+  }
 })();
 
 // ---------------- Auth ----------------
@@ -2261,8 +2265,8 @@ function renderHome() {
 
   const shortcuts = $("#home-year-shortcuts");
   shortcuts.innerHTML = "";
-  const rail = $("#subject-rail");
-  rail.innerHTML = "";
+  const rail = $("#subject-rail"); // may not exist on older markup — guarded below
+  if (rail) rail.innerHTML = "";
   YEAR_LEVELS.forEach((y) => {
     const combined = y.topics.reduce((acc, t) => {
       const p = me.progress[t.id]; acc.attempted += p.attempted; acc.correct += p.correct; return acc;
@@ -2274,16 +2278,18 @@ function renderHome() {
     btn.addEventListener("click", () => selectYear(y.id));
     shortcuts.appendChild(btn);
 
-    const railBtn = document.createElement("button");
-    railBtn.className = "subject-rail-btn" + (currentYearId === y.id ? " active" : "");
-    railBtn.title = y.label;
-    railBtn.innerHTML = `
-      <span class="subject-rail-icon">${y.icon}</span>
-      <span class="subject-rail-label">${y.shortLabel || y.label}</span>
-      <span class="subject-rail-pct">${pct}%</span>
-    `;
-    railBtn.addEventListener("click", () => selectYear(y.id));
-    rail.appendChild(railBtn);
+    if (rail) {
+      const railBtn = document.createElement("button");
+      railBtn.className = "subject-rail-btn" + (currentYearId === y.id ? " active" : "");
+      railBtn.title = y.label;
+      railBtn.innerHTML = `
+        <span class="subject-rail-icon">${y.icon}</span>
+        <span class="subject-rail-label">${y.shortLabel || y.label}</span>
+        <span class="subject-rail-pct">${pct}%</span>
+      `;
+      railBtn.addEventListener("click", () => selectYear(y.id));
+      rail.appendChild(railBtn);
+    }
   });
 
   const top3 = Object.entries(users).map(([name, u]) => ({ name, points: u.points, avatar: u.avatar || "🎓" }))
