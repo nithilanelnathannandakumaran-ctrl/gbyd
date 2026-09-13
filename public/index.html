@@ -244,16 +244,28 @@
   /* Right-hand subject quick-jump rail */
   #subject-rail {
     position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
-    display: flex; flex-direction: column; gap: 10px; z-index: 20;
+    display: flex; flex-direction: column; gap: 14px; z-index: 20;
+    background: rgba(255,255,255,0.14); backdrop-filter: blur(8px);
+    padding: 16px 10px; border-radius: 26px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
   }
   .subject-rail-btn {
-    width: 52px; height: 52px; border-radius: 16px; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
-    background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    color: var(--ink); transition: transform 0.15s, box-shadow 0.15s;
+    width: 66px; border: none; cursor: pointer; background: none;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 4px 2px 8px; border-radius: 16px; transition: background 0.15s, transform 0.15s;
   }
-  .subject-rail-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
-  .subject-rail-btn.active { background: linear-gradient(135deg, var(--purple-1), var(--purple-2)); color: #fff; }
+  .subject-rail-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.12); }
+  .subject-rail-icon {
+    width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; background: linear-gradient(145deg, var(--accent), var(--teal));
+    box-shadow: 0 4px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .subject-rail-btn.active .subject-rail-icon {
+    background: linear-gradient(145deg, #FFD166, #FFB84D);
+    box-shadow: 0 4px 14px rgba(255,209,102,0.55), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .subject-rail-label { font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .subject-rail-pct { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.85); }
   @media (max-width: 900px) {
     #subject-rail { display: none; } /* keeps mobile layout uncluttered; subjects still reachable from the top bar */
   }
@@ -1966,27 +1978,23 @@ function forceLoggedOut(message) {
   setTimeout(() => authError(message), 100);
 }
 
-(async function init() {
-  const token = getToken();
-  if (!token) { showScreen(hasAcceptedTerms() ? "auth" : "terms"); return; }
-  try {
-    const data = await apiFetch("/state");
-    users = data.users;
-    const me = data.me;
-    if (!me || !users[me]) throw new Error("no session");
-    if (users[me].kicked) {
-      forceLoggedOut("This account has been suspended by an administrator. Please contact the site admin.");
-      return;
-    }
-    currentUsername = me;
-    sessionStartedAt = Date.now();
-    showScreen("app");
-    renderApp();
-    startStatePolling();
-  } catch (e) {
-    setToken(null);
-    showScreen(hasAcceptedTerms() ? "auth" : "terms");
-  }
+(function demoInit() {
+  // PREVIEW-ONLY demo data so the design can be seen without a live backend.
+  const demoProgress = {};
+  allTopics().forEach((t, i) => { demoProgress[t.id] = { attempted: (i % 5) + 1, correct: i % 4 }; });
+  users = {
+    elnathan: { username: "elnathan", isAdmin: true, kicked: false, avatar: "🎓", points: 245,
+      unlockedAvatars: ["🎓"], friends: ["maya"], progress: demoProgress,
+      badges: ["novice","bronze","admin"], bonusBadges: [], hadPerfectRound: true, forceLogoutAt: 0, joinedAt: Date.now() },
+    maya: { username: "maya", isAdmin: false, kicked: false, avatar: "🦉", points: 180,
+      unlockedAvatars: ["🎓","🦉"], friends: ["elnathan"], progress: {}, badges: ["novice"], bonusBadges: [],
+      hadPerfectRound: false, forceLogoutAt: 0, joinedAt: Date.now() },
+  };
+  allTopics().forEach((t) => { if (!users.maya.progress[t.id]) users.maya.progress[t.id] = { attempted: 0, correct: 0 }; });
+  currentUsername = "elnathan";
+  sessionStartedAt = Date.now();
+  showScreen("app");
+  renderApp();
 })();
 
 // ---------------- Auth ----------------
@@ -2267,9 +2275,13 @@ function renderHome() {
     shortcuts.appendChild(btn);
 
     const railBtn = document.createElement("button");
-    railBtn.className = "subject-rail-btn";
+    railBtn.className = "subject-rail-btn" + (currentYearId === y.id ? " active" : "");
     railBtn.title = y.label;
-    railBtn.textContent = y.icon;
+    railBtn.innerHTML = `
+      <span class="subject-rail-icon">${y.icon}</span>
+      <span class="subject-rail-label">${y.shortLabel || y.label}</span>
+      <span class="subject-rail-pct">${pct}%</span>
+    `;
     railBtn.addEventListener("click", () => selectYear(y.id));
     rail.appendChild(railBtn);
   });
